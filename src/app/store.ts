@@ -1,5 +1,5 @@
 import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
-import fileExplorerReducer from './fileExplorerSlice';
+import fileExplorerReducer from '../components/fileExplorer/fileExplorerSlice';
 
 export const store = configureStore({
   reducer: {
