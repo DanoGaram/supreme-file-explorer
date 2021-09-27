@@ -1,5 +1,6 @@
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../../app/store";
+import { createDirectory } from "../../utils";
 import { fileSeparator, FileT } from "./types";
 
 export interface FileExplorerState {
@@ -63,6 +64,13 @@ export const { onChangePath } = fileExplorerSlice.actions;
 export const selectFiles = createSelector(
   (state: RootState): FileExplorerState => state.fileExplorer,
   (fileExplorer) => fileExplorer.files
+);
+
+export const selectDirectory = createSelector(selectFiles, (files) =>
+  createDirectory(
+    files.map((x) => ({ path: x.path, isFolder: x.isFolder })),
+    fileSeparator
+  )
 );
 
 export const selectCurrentPath = createSelector(
