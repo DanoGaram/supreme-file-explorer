@@ -1,15 +1,21 @@
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../../app/store";
-import { createDirectory } from "../../utils";
-import { fileSeparator, FileT } from "./types";
+import { createDirectory, filterPath } from "../../utils";
+import { FileT, rootPath } from "./types";
 
 export interface FileExplorerState {
   currentPath: string;
+  currentPathIndex: number;
+  historyPath: string[];
   files: FileT[];
+  searchTerm: string;
 }
 
 const initialState: FileExplorerState = {
-  currentPath: "/",
+  currentPath: rootPath,
+  historyPath: [rootPath],
+  currentPathIndex: 0,
+  searchTerm: "",
   files: [
     { path: "/develop/rols", isFolder: true },
     {
@@ -54,12 +60,46 @@ export const fileExplorerSlice = createSlice({
   initialState,
   reducers: {
     onChangePath: (state, action: PayloadAction<string>) => {
+      if (state.currentPathIndex !== state.historyPath.length - 1) {
+        state.historyPath = state.historyPath.slice(
+          0,
+          state.currentPathIndex + 1
+        );
+      }
+      state.historyPath.push(action.payload);
       state.currentPath = action.payload;
+      state.currentPathIndex = state.historyPath.length - 1;
+      state.searchTerm = "";
+    },
+    onPrevPath: (state) => {
+      state.currentPathIndex = state.currentPathIndex - 1;
+      state.currentPath = state.historyPath[state.currentPathIndex];
+    },
+    onNextPath: (state) => {
+      state.currentPathIndex = state.currentPathIndex + 1;
+      state.currentPath = state.historyPath[state.currentPathIndex];
+    },
+    onCreateFolder: (state, action: PayloadAction<string>) => {
+      state.files.push({
+        isFolder: true,
+        path: `${state.currentPath}${
+          state.currentPath === rootPath ? "" : "/"
+        }${action.payload}`,
+      });
+    },
+    onChangeSearchTerm: (state, action: PayloadAction<string>) => {
+      state.searchTerm = action.payload;
     },
   },
 });
 
-export const { onChangePath } = fileExplorerSlice.actions;
+export const {
+  onChangePath,
+  onChangeSearchTerm,
+  onCreateFolder,
+  onPrevPath,
+  onNextPath,
+} = fileExplorerSlice.actions;
 
 export const selectFiles = createSelector(
   (state: RootState): FileExplorerState => state.fileExplorer,
@@ -69,7 +109,7 @@ export const selectFiles = createSelector(
 export const selectDirectory = createSelector(selectFiles, (files) =>
   createDirectory(
     files.map((x) => ({ path: x.path, isFolder: x.isFolder })),
-    fileSeparator
+    ""
   )
 );
 
@@ -78,29 +118,39 @@ export const selectCurrentPath = createSelector(
   (fileExplorer) => fileExplorer.currentPath
 );
 
+export const selectHistoryPath = (state: RootState) =>
+  state.fileExplorer.historyPath;
+export const selectCurrentPathIndex = (state: RootState) =>
+  state.fileExplorer.currentPathIndex;
+
+export const selectNavigationPathAvailability = createSelector(
+  selectHistoryPath,
+  selectCurrentPathIndex,
+  (history, currentIndex) => ({
+    allowPrev: currentIndex > 0,
+    allowNext: currentIndex < history.length - 1,
+  })
+);
+
+export const selectSearchTerm = createSelector(
+  (state: RootState): FileExplorerState => state.fileExplorer,
+  (fileExplorer) => fileExplorer.searchTerm
+);
+
 export const selectCurrentFiles = createSelector(
   selectFiles,
   selectCurrentPath,
-  (files, currentPath) =>
-    files.filter(
-      (x) =>
-        !x.isFolder &&
-        x.path.startsWith(currentPath) &&
-        !x.path.replace(currentPath, "").includes(fileSeparator, 1)
-    )
+  selectSearchTerm,
+  (files, currentPath, searchTerm) =>
+    files.filter((x) => filterPath(x, currentPath, searchTerm, false))
 );
 
 export const selectCurrentFolders = createSelector(
   selectFiles,
   selectCurrentPath,
-  (files, currentPath) =>
-    files.filter(
-      (x) =>
-        x.isFolder &&
-        x.path !== currentPath &&
-        x.path.startsWith(currentPath) &&
-        !x.path.replace(currentPath, "").includes(fileSeparator, 1)
-    )
+  selectSearchTerm,
+  (files, currentPath, searchTerm) =>
+    files.filter((x) => filterPath(x, currentPath, searchTerm, true))
 );
 
 export default fileExplorerSlice.reducer;

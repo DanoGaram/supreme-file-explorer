@@ -1,3 +1,4 @@
+import { Typography } from "@mui/material";
 import React from "react";
 import { useSelector } from "react-redux";
 import {
@@ -10,7 +11,12 @@ function DirectoryNavigation() {
   const directories = useSelector(selectDirectory);
   const currentPath = useSelector(selectCurrentPath);
 
-  return <DirectoryList directories={directories} currentPath={currentPath} />;
+  return (
+    <>
+      <Typography variant="h5">File Explorer</Typography>
+      <DirectoryList directories={directories} currentPath={currentPath} />
+    </>
+  );
 }
 
 export default DirectoryNavigation;

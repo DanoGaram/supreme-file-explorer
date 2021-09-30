@@ -11,3 +11,5 @@ export interface DirectoryT {
 }
 
 export const fileSeparator = "/";
+
+export const rootPath = "/";

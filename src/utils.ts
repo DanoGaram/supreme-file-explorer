@@ -1,4 +1,9 @@
-import { DirectoryT, fileSeparator } from "./components/fileExplorer/types";
+import {
+  DirectoryT,
+  fileSeparator,
+  FileT,
+  rootPath,
+} from "./components/fileExplorer/types";
 
 /**
  * Get a name based on the path taking the last part after the last separator
@@ -27,32 +32,64 @@ export function createDirectory(
     return [];
   } else {
     const directories: DirectoryT[] = [];
-    const uniquePaths =
-      basePath !== fileSeparator
-        ? new Set(
-            files.map((x) => {
-              const partialPathIndex = x.path.indexOf(
-                fileSeparator,
-                basePath.length
-              );
-              return x.path.substring(0, partialPathIndex);
-            })
+    const childrenPaths: string[] = basePath
+      ? files
+          .filter(
+            (x) =>
+              x.isFolder &&
+              x.path.indexOf(fileSeparator, basePath.length) === -1
           )
-        : new Set(["/"]);
-    uniquePaths.forEach((path) => {
+          .map((x) => x.path)
+      : [rootPath];
+    childrenPaths.forEach((path) => {
       if (path) {
-        const subPaths = files.filter(
+        const subFiles = files.filter(
           (x) => x.path.startsWith(path) && x.path !== path
         );
-        const containedItems = subPaths.filter((x) => !x.isFolder).length;
+        const containedItems = subFiles.filter((x) => !x.isFolder).length;
         const currentDirectory: DirectoryT = {
           path,
           containedItems,
-          subDirectories: createDirectory(subPaths, path + fileSeparator),
+          subDirectories: createDirectory(
+            subFiles,
+            path === rootPath ? rootPath : path + fileSeparator
+          ),
         };
         directories.push(currentDirectory);
       }
     });
     return directories;
   }
+}
+
+/**
+ * Indicates if a path have to be displayed or not in the current path
+ * @param file
+ * @param currentPath Current path
+ * @param searchTerm String to search if the path includes the text
+ * @param isFolder Indicates if you want to filter a folder path or a file path
+ * @returns A boolean indicating if the path has to be shown
+ */
+export function filterPath(
+  file: FileT,
+  currentPath: string,
+  searchTerm: string,
+  isFolder: boolean
+): boolean {
+  const folderCondition =
+    (isFolder && file.isFolder && file.path !== currentPath) ||
+    (!isFolder && !file.isFolder);
+  const isAtCurrentPath = !file.path
+    .replace(currentPath, "")
+    .includes(fileSeparator, 1);
+  const isInSearchTerm = searchTerm
+    ? getNameFromPath(file.path)
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    : true;
+  return (
+    folderCondition &&
+    file.path.startsWith(currentPath) &&
+    ((searchTerm && isInSearchTerm) || (!searchTerm && isAtCurrentPath))
+  );
 }
