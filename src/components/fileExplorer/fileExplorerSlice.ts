@@ -1,7 +1,7 @@
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../../app/store";
-import { createDirectory, filterPath } from "../../utils";
-import { FileT, rootPath } from "./types";
+import { createDirectory, filterPath, getNameFromPath } from "../../utils";
+import { fileSeparator, FileT, rootPath } from "./types";
 
 export interface FileExplorerState {
   currentPath: string;
@@ -83,12 +83,41 @@ export const fileExplorerSlice = createSlice({
       state.files.push({
         isFolder: true,
         path: `${state.currentPath}${
-          state.currentPath === rootPath ? "" : "/"
+          state.currentPath === rootPath ? "" : rootPath
         }${action.payload}`,
       });
     },
     onChangeSearchTerm: (state, action: PayloadAction<string>) => {
       state.searchTerm = action.payload;
+    },
+    moveContent: (
+      state,
+      action: PayloadAction<{
+        path: string;
+        newPath: string;
+        isFolder?: boolean;
+      }>
+    ) => {
+      const pathName = getNameFromPath(action.payload.path);
+      const newBasePath =
+        action.payload.newPath === rootPath
+          ? rootPath
+          : action.payload.newPath + fileSeparator;
+      if (!action.payload.isFolder) {
+        const file = state.files.find(
+          (x) => x.path === action.payload.path
+        ) ?? { path: "" };
+        file.path = `${newBasePath}${pathName}`;
+      } else {
+        state.files.forEach((x) => {
+          if (x.path.startsWith(action.payload.path)) {
+            x.path = `${newBasePath}${pathName}${x.path.replace(
+              action.payload.path,
+              ""
+            )}`;
+          }
+        });
+      }
     },
   },
 });
@@ -99,6 +128,7 @@ export const {
   onCreateFolder,
   onPrevPath,
   onNextPath,
+  moveContent,
 } = fileExplorerSlice.actions;
 
 export const selectFiles = createSelector(
