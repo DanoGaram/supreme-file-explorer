@@ -119,6 +119,14 @@ export const fileExplorerSlice = createSlice({
         });
       }
     },
+    onCreateFiles: (state, action: PayloadAction<FileT[]>) => {
+      state.files.push(
+        ...action.payload.map((x) => ({
+          ...x,
+          path: `${state.currentPath}${fileSeparator}${x.path}`,
+        }))
+      );
+    },
   },
 });
 
@@ -129,6 +137,7 @@ export const {
   onPrevPath,
   onNextPath,
   moveContent,
+  onCreateFiles,
 } = fileExplorerSlice.actions;
 
 export const selectFiles = createSelector(
